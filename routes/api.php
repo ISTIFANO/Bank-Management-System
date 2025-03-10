@@ -15,3 +15,4 @@ Route::middleware('auth:sanctum')->prefix('user')->group(function(){
 });
 
 Route::post('user/login',[AuthController::class,'login']);
+Route::post('user/register',[AuthController::class,'register'])->name('user.register');
