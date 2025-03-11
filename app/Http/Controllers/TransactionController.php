@@ -14,9 +14,10 @@ class TransactionController extends Controller
     {
 
 
-        $request->validate(["amount" => "required", "description" => "required", "name" => "required", "email" => "required"]);
-        $sender_id = Auth::user()->id();
+        $request->validate(["amount" => "required", "description" => "required", "sender_id" => "required", "receiver_id" => "required"]);
+        $sender_id = $request["sender_id"];
 $sender = User::find($sender_id);
+$email_sender = $sender->
         $sender_wallet =  Wallet::find($sender_id);
 
 if(!($sender_wallet->balance <= $request["amount"])){
