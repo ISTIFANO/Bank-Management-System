@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use Exception;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
 class TransactionController extends Controller
@@ -14,30 +16,39 @@ class TransactionController extends Controller
     {
 
 
-        $request->validate(["amount" => "required", "description" => "required", "sender_id" => "required", "receiver_id" => "required"]);
-        $sender_id = $request["sender_id"];
-$sender = User::find($sender_id);
-$email_sender = $sender->
-        $sender_wallet =  Wallet::find($sender_id);
+        $request->validate(["amount" => "required", "description" => "required", "sender_email" => "required", "receiver_email" => "required"]);
+        $sender = User::where(["email"=>$request['receiver_email']]);
+$sender_id= $sender->id;
+$sender_wallet= Wallet::where(["user_id"=>$sender_id]);
+
+$reciever = User::where(["email"=>$request['receiver_email']]);
+$reciever_id= $reciever->id;
+$reciever_wallet= Wallet::where(["user_id"=>$reciever_id]);
 
 if(!($sender_wallet->balance <= $request["amount"])){
 
 
     return response()->json(["message" => "budjet not found"]);
 }
+DB::beginTransaction();
+try{
 
-
-        $user = User::where((['email' => $request["email"]]));
-        if (!$user) {
-
-            return response()->json(["message" => "user not found"]);
-        }
-
-        $wallet =  Wallet::find($user->id);
-        $budjet = $request['amount'] + $wallet->balance;
+        $budjet = $sender_wallet->balance - $request['amount'];
         Wallet::update(['balance' => $budjet]);
 
-      
-        return response()->json(["reciever" => $user, "sender" => $sender, "amount" => $request['amount']]);
+
+        $budjet = $reciever_wallet->balance + $request['amount'];
+        Wallet::update(['balance' => $budjet]);
+
+
+
+      Db::commit();
+    
+    }catch(Exception $e){
+
+Db::rollBack();
+
+      }
+        return response()->json(["reciever" => $reciever, "sender" => $sender, "amount" => $request['amount']]);
     }
 }
