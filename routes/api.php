@@ -22,4 +22,4 @@ Route::post('Wallet/create',[WalletController::class,'createWallet']);
 Route::post('user/register',[AuthController::class,'register'])->name('user.register');
 
 
-Route::post('Transaction/create',[TransactionController::class,'CreateTransaction']);
+Route::post('Transaction/create',[TransactionController::class,'CreateTransaction'])->middleware('auth:sanctum');

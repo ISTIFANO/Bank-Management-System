@@ -10,7 +10,8 @@ class Transaction extends Model
         'amount',
         'description',
         'date',
-        'name',
-        'email'
+        'sender_id',
+        'receiver_id',
+        'status'
     ];
 }

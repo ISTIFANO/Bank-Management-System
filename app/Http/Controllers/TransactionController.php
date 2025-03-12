@@ -2,31 +2,37 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Transaction;
 use Exception;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
-
+use Illuminate\Support\Facades\Validator;
 
 class TransactionController extends Controller
 {
     public function CreateTransaction(Request $request)
+
     {
-        $request->validate([
+
+        $validator = Validator::make($request->all(),[
             "amount" => "required|numeric",
             "description" => "required|string",
             "receiver" => "required|email",
-            "seender" => "required|email"
         ]);
+       if($validator->fails()){
+            return response()->json([
+                "message" => $validator->errors(),
+            ]);
+       }
+        $sender_id =Auth::user()->id;
 
-        $sender = User::where("email", '=', $request->sender_email)->first();
-        if (!$sender) {
-            return response()->json(["message" => "Sender not found"]);
-        }
+            // return response()->json(["user" =>$user]) ;
+    
 
-        $sender_wallet = DB::table("wallets")->where("user_id", "=", $sender->id)->first();
+        $sender_wallet = DB::table("wallets")->where("user_id", "=",$sender_id)->first();
         if (!$sender_wallet) {
             return response()->json(["message" => "Sender's wallet not found"]);
         }
@@ -57,15 +63,21 @@ class TransactionController extends Controller
 
             Wallet::where('user_id', $receiver_wallet->user_id)->update(['balance' => $receiver_new_balance]);
 
+
+
+            $transaction = Transaction::create([
+                'amount' => $request->amount,
+                'description' => $request->description,
+                'date' => now(),
+                'receiver_id' => $receiver->id,
+                'sender_id' => $sender_id,
+                'status' => 'active'
+            ]);
+            
             DB::commit();
 
-            return response()->json([
-                "receiver" => $receiver,
-                "sender" => $sender,
-                "amount" => $request['amount'],
-                "sender_balance" => $sender_new_balance,
-                "receiver_balance" => $receiver_new_balance
-            ]);
+            return response()->json(["transaction" =>  $transaction]);
+
 
         } catch (Exception $e) {
             DB::rollBack();
