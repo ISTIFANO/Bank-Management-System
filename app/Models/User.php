@@ -34,6 +34,11 @@ class User extends Authenticatable
      *
      * @var list<string>
      */
+    protected $primaryKey = 'id';
+
+    protected $table = 'users';
+
+
     protected $hidden = [
         'password',
         'remember_token',
