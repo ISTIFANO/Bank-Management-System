@@ -9,61 +9,67 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 
+
 class TransactionController extends Controller
 {
-
     public function CreateTransaction(Request $request)
     {
+        $request->validate([
+            "amount" => "required|numeric",
+            "description" => "required|string",
+            "receiver" => "required|email",
+            "seender" => "required|email"
+        ]);
 
-        // dd($request->all());
+        $sender = User::where("email", '=', $request->sender_email)->first();
+        if (!$sender) {
+            return response()->json(["message" => "Sender not found"]);
+        }
 
-    //   $formvalidation =  $request->validate(["amount" => "required", "description" => "required", "receiver" => "required", "sender_email" => "required"]);
-
-
-    //   if(!$formvalidation)   {
-    //   return response()->json(["message" => "budjet not found"]);
-    // }
-
-    // dd($request["receiver"]);
-    // return response()->json([
-    //     'descrip' =>$request->description 
-    // ]);
-
-        $sender = User::where("email" , '=' , $request->seender)->first();
-    //       return response()->json([
-    //     'descrip' =>$request->description,
-    //     "data"=> $sender->id
-    // ]);
-        $sender_id = $sender->id;
-
-
-        $sender_wallet = DB::table("wallets")->where("user_id", "=", $sender_id)->first();
+        $sender_wallet = DB::table("wallets")->where("user_id", "=", $sender->id)->first();
+        if (!$sender_wallet) {
+            return response()->json(["message" => "Sender's wallet not found"]);
+        }
 
         $receiver = User::where('email', '=', $request['receiver'])->first();
-        $reciever_id = $receiver->id;
-        // return [ 'sender_wallet ' => $receiver];
+        if (!$receiver) {
+            return response()->json(["message" => "not found"]);
+        }
 
-        $reciever_wallet = DB::table("wallets")->where("user_id", "=", $reciever_id)->first();
-        //    return [ 'sender_wallet ' => $reciever_wallet];
+        $receiver_wallet = DB::table("wallets")->where("user_id", "=", $receiver->id)->first();
+        if (!$receiver_wallet) {
+            return response()->json(["message" => "wallet not found"]);
+        }
 
         DB::beginTransaction();
+
         try {
-  
-$budjet1 = $sender_wallet->balance - $request['amount'];
+       
+            $sender_new_balance = $sender_wallet->balance - $request['amount'];
+            if ($sender_new_balance < 0) {
+                return response()->json(["message" => "Insufficient funds"], 400);
+            }
 
-Wallet::where('user_id', $sender_wallet->user_id)->update(['balance' => $budjet1]);
+            
+            Wallet::where('user_id', $sender_wallet->user_id)->update(['balance' => $sender_new_balance]);
 
-$budjet = $reciever_wallet->balance + $request['amount'];
-Wallet::where('user_id', $reciever_wallet->user_id)->update(['balance' => $budjet]);
+            $receiver_new_balance = $receiver_wallet->balance + $request['amount'];
 
+            Wallet::where('user_id', $receiver_wallet->user_id)->update(['balance' => $receiver_new_balance]);
 
+            DB::commit();
 
-            Db::commit();
+            return response()->json([
+                "receiver" => $receiver,
+                "sender" => $sender,
+                "amount" => $request['amount'],
+                "sender_balance" => $sender_new_balance,
+                "receiver_balance" => $receiver_new_balance
+            ]);
+
         } catch (Exception $e) {
-            // return [ 'ilyass ' => $budjet];
-
-            Db::rollBack();
+            DB::rollBack();
+            return response()->json(["message" => "Transaction not working", "error" => $e->getMessage()]);
         }
-        return response()->json(["reciever" => $receiver, "sender" => $sender, "amount" => $request['amount'],"budjet_sender"=>$budjet1,"budjet_reciever"=>$budjet]);
     }
 }
