@@ -84,4 +84,30 @@ class TransactionController extends Controller
             return response()->json(["message" => "Transaction not working", "error" => $e->getMessage()]);
         }
     }
+
+
+    public function delete(Request $request){
+        $request->validate(["delete_id" => "required"]);
+    
+      $transaction =  Transaction::find($request["delete_id"]);
+    
+    $transaction->delete();
+    
+    return response()->json(['message'=>'deleted']);
+    
+    }
+
+    
+public function updatestatus(Request $request){
+   
+ DB::table('transactions')
+            ->where('id', $request->id)
+            ->update([
+                'status' => $request->status
+            ]);
+
+return response()->json(['message'=>'status updated']);
+
+}
+
 }
